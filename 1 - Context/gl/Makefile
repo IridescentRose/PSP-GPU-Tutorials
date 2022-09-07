@@ -1,7 +1,7 @@
 TARGET = context
-OBJS = context.o ../common/callbacks.o
+OBJS = context.o ../../common/callbacks.o
 
-INCDIR =
+INCDIR = ../../gu2gl/
 CFLAGS = -Wall
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
