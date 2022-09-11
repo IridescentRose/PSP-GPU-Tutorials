@@ -43,6 +43,16 @@ unsigned short __attribute__((aligned(16))) indices[6] = {
     0, 1, 2, 2, 3, 0
 };
 
+/**
+ * @brief Resets matrix and applies transform
+ * 
+ */
+void reset_transform(float x, float y, float z){
+    ScePspFVector3 v = {x, y, z};
+    glLoadIdentity();
+    gluTranslate(&v);
+}
+
 int main() {
     // Boilerplate
     SetupCallbacks();
@@ -74,40 +84,22 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     
         //Move this left
-        ScePspFVector3 transform = {
-            .x = -0.5f, 
-            .y = 0.0f, 
-            .z = 0.0f
-        };
-        gluTranslate(&transform);
+        reset_transform(-0.5f, 0.0f, 0.0f);
 
         // Draw Triangle
         glDrawElements(GL_TRIANGLES, GL_COLOR_8888 | GL_VERTEX_32BITF | GL_TRANSFORM_3D, 3, NULL, triangle);
 
         //Move back to origin, and right 0.5f, up 0.25f
-        ScePspFVector3 transform2 = {
-            .x = 1.0f, 
-            .y = 0.25f, 
-            .z = 0.0f
-        };
-        gluTranslate(&transform2);
+        reset_transform(0.5f, 0.25f, 0.0f);
 
         // Draw Square
         glDrawElements(GL_TRIANGLES, GL_COLOR_8888 | GL_VERTEX_32BITF | GL_TRANSFORM_3D, 6, NULL, square);
 
         //Move back to origin, and down 0.5f
-        ScePspFVector3 transform3 = {
-            .x = -0.5f, 
-            .y = -0.75f, 
-            .z = 0.0f
-        };
-        gluTranslate(&transform3);
+        reset_transform(0.0f, -0.5f, 0.0f);
 
         // Draw Indexed Square
         glDrawElements(GL_TRIANGLES, GL_INDEX_16BIT | GL_COLOR_8888 | GL_VERTEX_32BITF | GL_TRANSFORM_3D, 6, indices, square_indexed);
-
-        // Reset Model Matrix
-        glLoadIdentity();
 
         guglSwapBuffers(GL_TRUE, GL_FALSE);
     }
