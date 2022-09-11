@@ -63,7 +63,7 @@ int main() {
     // Initialize Matrices
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(-16.0f / 9.0f, 16.0f / 9.0f, -1.0f, 1.0f, 10.0f, -10.0f);
+    glOrtho(-16.0f / 9.0f, 16.0f / 9.0f, -1.0f, 1.0f, -10.0f, 10.0f);
 
     glMatrixMode(GL_VIEW);
     glLoadIdentity();
