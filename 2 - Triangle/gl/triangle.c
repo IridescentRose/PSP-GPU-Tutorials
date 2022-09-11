@@ -16,10 +16,31 @@ struct Vertex
 	float x, y, z;
 };
 
-struct Vertex __attribute__((aligned(16))) triangle[3 * 3] = {
-    {0xFF0000FF, -0.5, 0.0, 0.0},
-    {0xFF00FF00, 0.5, 0.0, 0.0},
-    {0xFFFF0000, 0.0, 0.5, 0},
+struct Vertex __attribute__((aligned(16))) triangle[3] = {
+    {0xFF00FF00, 0.35f, 0.0, -1.0f},
+    {0xFF0000FF, -0.35f, 0.0, -1.0f},
+    {0xFFFF0000, 0.0, 0.5f, -1.0f},
+};
+
+struct Vertex __attribute__((aligned(16))) square[6] = {
+    {0xFF00FF00, -0.25f, -0.25f, -1.0f},
+    {0xFF0000FF, -0.25f, 0.25f, -1.0f},
+    {0xFFFF0000, 0.25f, 0.25f, -1.0f},
+    
+    {0xFFFF0000, 0.25f, 0.25f, -1.0f},
+    {0xFFFFFFFF, 0.25f, -0.25f, -1.0f},
+    {0xFF00FF00, -0.25f, -0.25f, -1.0f},
+};
+
+struct Vertex __attribute__((aligned(16))) square_indexed[4] = {
+    {0xFF00FFFF, -0.25f, -0.25f, -1.0f},
+    {0xFFFF00FF, -0.25f, 0.25f, -1.0f},
+    {0xFFFFFF00, 0.25f, 0.25f, -1.0f},
+    {0xFF000000, 0.25f, -0.25f, -1.0f},
+};
+
+unsigned short __attribute__((aligned(16))) indices[6] = {
+    0, 1, 2, 2, 3, 0
 };
 
 int main() {
@@ -28,16 +49,65 @@ int main() {
 
     // Initialize Graphics
     guglInit(list);
-    
+
+    // Initialize Matrices
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(-16.0f / 9.0f, 16.0f / 9.0f, -1.0f, 1.0f, 10.0f, -10.0f);
+
+    glMatrixMode(GL_VIEW);
+    glLoadIdentity();
+
+    glMatrixMode(GL_MODEL);
+    glLoadIdentity();
+
     //Main program loop
     while(running){
         guglStartFrame(list, GL_FALSE);
-    
+
+        // We're doing a 2D, Non-Textured render 
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_TEXTURE_2D);
+
         //Clear background to Bjack
         glClearColor(0xFF000000);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     
+        //Move this left
+        ScePspFVector3 transform = {
+            .x = -0.5f, 
+            .y = 0.0f, 
+            .z = 0.0f
+        };
+        gluTranslate(&transform);
+
+        // Draw Triangle
         glDrawElements(GL_TRIANGLES, GL_COLOR_8888 | GL_VERTEX_32BITF | GL_TRANSFORM_3D, 3, NULL, triangle);
+
+        //Move back to origin, and right 0.5f, up 0.25f
+        ScePspFVector3 transform2 = {
+            .x = 1.0f, 
+            .y = 0.25f, 
+            .z = 0.0f
+        };
+        gluTranslate(&transform2);
+
+        // Draw Square
+        glDrawElements(GL_TRIANGLES, GL_COLOR_8888 | GL_VERTEX_32BITF | GL_TRANSFORM_3D, 6, NULL, square);
+
+        //Move back to origin, and down 0.5f
+        ScePspFVector3 transform3 = {
+            .x = -0.5f, 
+            .y = -0.75f, 
+            .z = 0.0f
+        };
+        gluTranslate(&transform3);
+
+        // Draw Indexed Square
+        glDrawElements(GL_TRIANGLES, GL_INDEX_16BIT | GL_COLOR_8888 | GL_VERTEX_32BITF | GL_TRANSFORM_3D, 6, indices, square_indexed);
+
+        // Reset Model Matrix
+        glLoadIdentity();
 
         guglSwapBuffers(GL_TRUE, GL_FALSE);
     }
