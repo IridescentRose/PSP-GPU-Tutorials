@@ -1,11 +1,9 @@
 #include "../../common/callbacks.h"
 #include "../../common/common-gl.h"
-
 #include <gu2gl.h>
-
 #include <string.h>
 #include <malloc.h>
-
+#include <math.h>
 
 // PSP Module Info
 PSP_MODULE_INFO("Camera Sample", 0, 1, 1);
@@ -26,6 +24,22 @@ unsigned short __attribute__((aligned(16))) indices[6] = {
     0, 1, 2, 2, 3, 0
 };
 
+typedef struct{
+    float x, y;
+    float rot;
+} Camera2D;
+
+void apply_camera(const Camera2D* cam){
+    glMatrixMode(GL_VIEW);
+    glLoadIdentity();
+
+    ScePspFVector3 v = {cam->x, cam->y, 0};
+    gluTranslate(&v);
+    gluRotateZ(cam->rot / 180.0f * 3.14159f);
+
+    glMatrixMode(GL_MODEL);
+    glLoadIdentity();
+}
 
 int main() {
     // Boilerplate
@@ -53,6 +67,12 @@ int main() {
     if(!texture)
         goto cleanup;
 
+    Camera2D camera = {
+        .x = 0,
+        .y = 0,
+        .rot = 45.0f
+    };
+
     //Main program loop
     while(running){
         guglStartFrame(list, GL_FALSE);
@@ -67,6 +87,8 @@ int main() {
         //Clear background to Bjack
         glClearColor(0xFF000000);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+        apply_camera(&camera);
     
         reset_transform(-0.5f, 0.0f, 0.0f);
         bind_texture(texture);
@@ -80,6 +102,9 @@ int main() {
         glDrawElements(GL_TRIANGLES, GL_INDEX_16BIT | GL_TEXTURE_32BITF | GL_COLOR_8888 | GL_VERTEX_32BITF | GL_TRANSFORM_3D, 6, indices, square_indexed);
 
         guglSwapBuffers(GL_TRUE, GL_FALSE);
+
+        camera.rot += 1.0f;
+        camera.y = sinf(camera.rot / 180.0f) / 2.0f;
     }
 
 cleanup:

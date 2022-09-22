@@ -5,6 +5,7 @@
 #include <pspdisplay.h>
 #include <pspgu.h>
 #include <pspgum.h>
+#include <math.h>
 
 // PSP Module Info
 PSP_MODULE_INFO("Camera Sample", 0, 1, 1);
@@ -25,6 +26,23 @@ unsigned short __attribute__((aligned(16))) indices[6] = {
     0, 1, 2, 2, 3, 0
 };
 
+
+typedef struct{
+    float x, y;
+    float rot;
+} Camera2D;
+
+void apply_camera(const Camera2D* cam){
+    sceGumMatrixMode(GU_VIEW);
+    sceGumLoadIdentity();
+
+    ScePspFVector3 v = {cam->x, cam->y, 0};
+    sceGumTranslate(&v);
+    sceGumRotateZ(cam->rot / 180.0f * 3.14159f);
+
+    sceGumMatrixMode(GU_MODEL);
+    sceGumLoadIdentity();
+}
 
 int main() {
     // Boilerplate
@@ -52,6 +70,12 @@ int main() {
     if(!texture)
         goto cleanup;
 
+    Camera2D camera = {
+        .x = 0,
+        .y = 0,
+        .rot = 45.0f
+    };
+
     //Main program loop
     while(running){
         startFrame(list);
@@ -67,6 +91,8 @@ int main() {
         sceGuClearColor(0xFF000000);
         sceGuClear(GU_COLOR_BUFFER_BIT | GU_DEPTH_BUFFER_BIT | GU_STENCIL_BUFFER_BIT);
     
+        apply_camera(&camera);
+        
         reset_transform(-0.5f, 0.0f, 0.0f);
         bind_texture(texture);
 
@@ -79,6 +105,9 @@ int main() {
         sceGumDrawArray(GU_TRIANGLES, GU_INDEX_16BIT | GU_TEXTURE_32BITF | GU_COLOR_8888 | GU_VERTEX_32BITF | GU_TRANSFORM_3D, 6, indices, square_indexed);
 
         endFrame();
+
+        camera.rot += 1.0f;
+        camera.y = sinf(camera.rot / 180.0f) / 2.0f;
     }
 
 cleanup:
