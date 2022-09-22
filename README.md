@@ -16,3 +16,9 @@ The PSP Lacks a lot of GPU tutorials. Let's fix that. Also hosted on psp-dev.org
 
 - [Tutorial](https://psp-dev.org/doku.php?id=tutorial:texture)
 - [Source](https://github.com/IridescentRose/PSP-GPU-Tutorials/tree/master/3-Textures)
+
+## Tutorial 4 - Camera & Matrices
+![Drawing Result](4-Camera/img.png)
+
+- [Tutorial](https://psp-dev.org/doku.php?id=tutorial:camera)
+- [Source](https://github.com/IridescentRose/PSP-GPU-Tutorials/tree/master/4-Camera)
