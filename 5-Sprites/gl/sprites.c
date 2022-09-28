@@ -81,12 +81,20 @@ Sprite* create_sprite(float x, float y, float sx, float sy, Texture* tex) {
         return NULL;
 
     sprite->mesh = create_mesh(4, 6);
-    sprite->layer = 0;
-    
     if(sprite->mesh == NULL){
         free(sprite);
         return NULL;
     }
+
+    sprite->x = x;
+    sprite->y = y;
+    sprite->sx = sx;
+    sprite->sy = sy;
+    sprite->mesh->index_count = 6;
+    sprite->tex = tex;
+    sprite->layer = 0;
+    sprite->rot = 0;
+    
 
     ((Vertex*)sprite->mesh->data)[0] = create_vert(0, 0, 0xFFFFFFFF, -0.25f, -0.25f, 0.0f);
     ((Vertex*)sprite->mesh->data)[1] = create_vert(0, 1, 0xFFFFFFFF, -0.25f,  0.25f, 0.0f);
@@ -99,14 +107,6 @@ Sprite* create_sprite(float x, float y, float sx, float sy, Texture* tex) {
     sprite->mesh->indices[3] = 2;
     sprite->mesh->indices[4] = 3;
     sprite->mesh->indices[5] = 0;
-
-    sprite->mesh->index_count = 6;
-    sprite->tex = tex;
-
-    sprite->x = x;
-    sprite->y = y;
-    sprite->sx = sx;
-    sprite->sy = sy;
 
     sceKernelDcacheWritebackInvalidateAll();
 
