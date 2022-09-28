@@ -216,6 +216,8 @@ int main() {
         camera.y = sinf(camera.rot / 180.0f) / 2.0f;
     }
 
+    destroy_sprite(sprite);
+
 cleanup:
 
     // Terminate Graphics
