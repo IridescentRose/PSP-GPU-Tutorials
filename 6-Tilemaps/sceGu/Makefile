@@ -1,5 +1,5 @@
 TARGET = tilemaps
-OBJS = tilemaps.o ../../common/callbacks.o ../../common/common-gl.o
+OBJS = tilemaps.o ../../common/callbacks.o ../../common/common-sce.o
 
 INCDIR = ../../gu2gl/
 CFLAGS = -Wall -std=c11

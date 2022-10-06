@@ -56,7 +56,7 @@ void copy_texture_data(void* dest, const void* src, const int pW, const int widt
 }
 Texture* load_texture(const char* filename, const int flip, const int vram) {
     int width, height, nrChannels;    
-    stbi_set_flip_vertically_on_load(GU_TRUE);
+    stbi_set_flip_vertically_on_load(flip);
     unsigned char *data = stbi_load(filename, &width, &height,
                                     &nrChannels, STBI_rgb_alpha);
 
