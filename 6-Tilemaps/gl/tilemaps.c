@@ -81,20 +81,20 @@ void get_uv_index(TextureAtlas* atlas, float* buf, int idx) {
     float w = x + sizeX;
 
     // 0 0
-    // 1 0
-    // 1 1
     // 0 1
+    // 1 1
+    // 1 0 
     buf[0] = x;
     buf[1] = y;
 
-    buf[2] = w;
-    buf[3] = y;
+    buf[2] = x;
+    buf[3] = h;
 
     buf[4] = w;
     buf[5] = h;
 
-    buf[6] = x;
-    buf[7] = h;
+    buf[6] = w;
+    buf[7] = y;
 }
 
 typedef struct {
@@ -104,6 +104,7 @@ typedef struct {
 
 typedef struct {
     float x, y;
+    float scale_x, scale_y;
     int w, h;
     TextureAtlas atlas;
     Texture* texture;
@@ -127,7 +128,9 @@ Tilemap* create_tilemap(TextureAtlas atlas, Texture* texture, int sizex, int siz
         free(tilemap->tiles);
         free(tilemap);
     }
-
+    
+    memset(tilemap->mesh->data, 0, sizeof(Vertex) * sizex * sizey);
+    memset(tilemap->mesh->indices, 0, sizeof(u16) * sizex * sizey);
     memset(tilemap->tiles, 0, sizeof(Tile) * sizex * sizey);
 
     tilemap->atlas = atlas;
@@ -136,43 +139,38 @@ Tilemap* create_tilemap(TextureAtlas atlas, Texture* texture, int sizex, int siz
     tilemap->y = 0;
     tilemap->w = sizex;
     tilemap->h = sizey;
+    tilemap->mesh->index_count = tilemap->w * tilemap->h * 6;
+    tilemap->scale_x = 16.0f;
+    tilemap->scale_y = 16.0f;
 
     return tilemap;
 }
 
-void set_tile(Tilemap* tilemap, Tile tile) {
-    int idx = tile.x + tile.y * tilemap->w;
-
-    tilemap->tiles[idx] = tile;
-}
-
 void build_tilemap(Tilemap* tilemap) {
-    for(int y = 0; y < tilemap->h; y++)
-    for(int x = 0; x < tilemap->w; x++){
-        int idx = x + y * tilemap->w;
-
-        Tile* tile = &tilemap->tiles[idx];
-
+    int idxc = 0;
+    int size = tilemap->w * tilemap->h;
+    for(int i = 0; i < size; i++){
         float buf[8];
-        get_uv_index(&tilemap->atlas, buf, tile->tex_idx);
+        get_uv_index(&tilemap->atlas, buf, tilemap->tiles[i].tex_idx);
 
-        float tx = (float)tile->x;
-        float ty = (float)tile->y;
-        float tw = x + 1.0f;
-        float th = x + 1.0f;
+        float tx = (float)tilemap->tiles[i].x;
+        float ty = (float)tilemap->tiles[i].y;
+        float tw = tx + 1.0f;
+        float th = ty + 1.0f;
 
-        ((Vertex*)tilemap->mesh->data)[idx * 4 + 0] = create_vert(buf[0], buf[1], 0xFFFFFFFF, tx, ty, 0.0f);
-        ((Vertex*)tilemap->mesh->data)[idx * 4 + 1] = create_vert(buf[2], buf[3], 0xFFFFFFFF, tw, ty, 0.0f);
-        ((Vertex*)tilemap->mesh->data)[idx * 4 + 2] = create_vert(buf[4], buf[5], 0xFFFFFFFF, tw, th, 0.0f);
-        ((Vertex*)tilemap->mesh->data)[idx * 4 + 3] = create_vert(buf[6], buf[7], 0xFFFFFFFF, tx, th, 0.0f);
+        ((Vertex*)tilemap->mesh->data)[i * 4 + 0] = create_vert(buf[0], buf[1], 0xFFFFFFFF, tx, ty, 0.0f);
+        ((Vertex*)tilemap->mesh->data)[i * 4 + 1] = create_vert(buf[2], buf[3], 0xFFFFFFFF, tx, th, 0.0f);
+        ((Vertex*)tilemap->mesh->data)[i * 4 + 2] = create_vert(buf[4], buf[5], 0xFFFFFFFF, tw, th, 0.0f);
+        ((Vertex*)tilemap->mesh->data)[i * 4 + 3] = create_vert(buf[6], buf[7], 0xFFFFFFFF, tw, ty, 0.0f);
 
-        tilemap->mesh->indices[idx * 6 + 0] = (idx * 6) + 0;
-        tilemap->mesh->indices[idx * 6 + 1] = (idx * 6) + 1;
-        tilemap->mesh->indices[idx * 6 + 2] = (idx * 6) + 2;
-        tilemap->mesh->indices[idx * 6 + 3] = (idx * 6) + 2;
-        tilemap->mesh->indices[idx * 6 + 4] = (idx * 6) + 3;
-        tilemap->mesh->indices[idx * 6 + 5] = (idx * 6) + 0;
+        tilemap->mesh->indices[i * 6 + 0] = (i * 4) + 0;
+        tilemap->mesh->indices[i * 6 + 1] = (i * 4) + 1;
+        tilemap->mesh->indices[i * 6 + 2] = (i * 4) + 2;
+        tilemap->mesh->indices[i * 6 + 3] = (i * 4) + 2;
+        tilemap->mesh->indices[i * 6 + 4] = (i * 4) + 3;
+        tilemap->mesh->indices[i * 6 + 5] = (i * 4) + 0;
     }
+    sceKernelDcacheWritebackInvalidateAll();
 }
 
 void draw_tilemap(Tilemap* tilemap) {
@@ -186,6 +184,14 @@ void draw_tilemap(Tilemap* tilemap) {
     };
 
     gluTranslate(&v);
+
+    ScePspFVector3 v1 = {
+        .x = tilemap->scale_x,
+        .y = tilemap->scale_y,
+        .z = 0.0f,
+    };
+
+    gluScale(&v1);
 
     bind_texture(tilemap->texture);
     draw_mesh(tilemap->mesh);
@@ -224,7 +230,7 @@ int main() {
     // Initialize Matrices
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(-20.0f, 20.0f, -20.0f, 20.0f, -10.0f, 10.0f);
+    glOrtho(0, 480, 0.0f, 272.0f, -10.0f, 10.0f);
 
     glMatrixMode(GL_VIEW);
     glLoadIdentity();
@@ -232,23 +238,26 @@ int main() {
     glMatrixMode(GL_MODEL);
     glLoadIdentity();
 
-    Texture* texture = load_texture("terrain.png", GL_TRUE, GL_TRUE);
+    Texture* texture = load_texture("terrain.png", GL_FALSE, GL_TRUE);
     if(!texture)
         goto cleanup;
 
     TextureAtlas atlas = {.w = 16, .h = 16};
     Tilemap* tilemap = create_tilemap(atlas, texture, 8, 8);
 
-    for(int y = 0; y < 8; y++) 
-    for(int x = 0; x < 8; x++) {
-        Tile tile = {
-            .x = x,
-            .y = y,
-            .tex_idx = 0
-        };
-        set_tile(tilemap, tile);
+    for(int y = 0; y < 8; y++) {
+        for(int x = 0; x < 8; x++) {
+            Tile tile = {
+                .x = x,
+                .y = y,
+                .tex_idx = x + y * 8
+            };
+            tilemap->tiles[x + y * 8] = tile;
+        }
     }
 
+    tilemap->x = 240;
+    tilemap->y = 136;
     build_tilemap(tilemap);
 
     //Main program loop
