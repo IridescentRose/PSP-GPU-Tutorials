@@ -64,7 +64,138 @@ Vertex create_vert(float u, float v, unsigned int color, float x, float y, float
     return vert;
 }
 
+typedef struct {
+    float w, h;
+} TextureAtlas;
 
+void get_uv_index(TextureAtlas* atlas, float* buf, int idx) {
+    int row = idx / (int)atlas->w;
+    int column = idx % (int)atlas->h;
+
+    float sizeX = 1.f / ((float)atlas->w);
+    float sizeY = 1.f / ((float)atlas->h);
+
+    float y = (float)row * sizeY;
+    float x = (float)column * sizeX;
+    float h = y + sizeY;
+    float w = x + sizeX;
+
+    // 0 0
+    // 1 0
+    // 1 1
+    // 0 1
+    buf[0] = x;
+    buf[1] = y;
+
+    buf[2] = w;
+    buf[3] = y;
+
+    buf[4] = w;
+    buf[5] = h;
+
+    buf[6] = x;
+    buf[7] = h;
+}
+
+typedef struct {
+    int x, y;
+    int tex_idx;
+} Tile;
+
+typedef struct {
+    float x, y;
+    int w, h;
+    TextureAtlas atlas;
+    Texture* texture;
+    Tile* tiles;
+    Mesh* mesh;
+} Tilemap;
+
+Tilemap* create_tilemap(TextureAtlas atlas, Texture* texture, int sizex, int sizey) {
+    Tilemap* tilemap = (Tilemap*)malloc(sizeof(Tilemap));
+    if(tilemap == NULL)
+        return NULL;
+
+    tilemap->tiles = (Tile*)malloc(sizeof(Tile) * sizex * sizey);
+    if(tilemap->tiles == NULL){
+        free(tilemap);
+        return NULL;
+    }
+    
+    tilemap->mesh = create_mesh(sizex * sizey * 4, sizex * sizey * 6);
+    if(tilemap->mesh == NULL){
+        free(tilemap->tiles);
+        free(tilemap);
+    }
+
+    memset(tilemap->tiles, 0, sizeof(Tile) * sizex * sizey);
+
+    tilemap->atlas = atlas;
+    tilemap->texture = texture;
+    tilemap->x = 0;
+    tilemap->y = 0;
+    tilemap->w = sizex;
+    tilemap->h = sizey;
+
+    return tilemap;
+}
+
+void set_tile(Tilemap* tilemap, Tile tile) {
+    int idx = tile.x + tile.y * tilemap->w;
+
+    tilemap->tiles[idx] = tile;
+}
+
+void build_tilemap(Tilemap* tilemap) {
+    for(int y = 0; y < tilemap->h; y++)
+    for(int x = 0; x < tilemap->w; x++){
+        int idx = x + y * tilemap->w;
+
+        Tile* tile = &tilemap->tiles[idx];
+
+        float buf[8];
+        get_uv_index(&tilemap->atlas, buf, tile->tex_idx);
+
+        float tx = (float)tile->x;
+        float ty = (float)tile->y;
+        float tw = x + 1.0f;
+        float th = x + 1.0f;
+
+        ((Vertex*)tilemap->mesh->data)[idx * 4 + 0] = create_vert(buf[0], buf[1], 0xFFFFFFFF, tx, ty, 0.0f);
+        ((Vertex*)tilemap->mesh->data)[idx * 4 + 1] = create_vert(buf[2], buf[3], 0xFFFFFFFF, tw, ty, 0.0f);
+        ((Vertex*)tilemap->mesh->data)[idx * 4 + 2] = create_vert(buf[4], buf[5], 0xFFFFFFFF, tw, th, 0.0f);
+        ((Vertex*)tilemap->mesh->data)[idx * 4 + 3] = create_vert(buf[6], buf[7], 0xFFFFFFFF, tx, th, 0.0f);
+
+        tilemap->mesh->indices[idx * 6 + 0] = (idx * 6) + 0;
+        tilemap->mesh->indices[idx * 6 + 1] = (idx * 6) + 1;
+        tilemap->mesh->indices[idx * 6 + 2] = (idx * 6) + 2;
+        tilemap->mesh->indices[idx * 6 + 3] = (idx * 6) + 2;
+        tilemap->mesh->indices[idx * 6 + 4] = (idx * 6) + 3;
+        tilemap->mesh->indices[idx * 6 + 5] = (idx * 6) + 0;
+    }
+}
+
+void draw_tilemap(Tilemap* tilemap) {
+    glMatrixMode(GL_MODEL);
+    glLoadIdentity();
+
+    ScePspFVector3 v = {
+        .x = tilemap->x,
+        .y = tilemap->y,
+        .z = 0.0f,
+    };
+
+    gluTranslate(&v);
+
+    bind_texture(tilemap->texture);
+    draw_mesh(tilemap->mesh);
+}
+
+void destroy_tilemap(Tilemap* tilemap) {
+    free(tilemap->mesh);
+    free(tilemap->tiles);
+    free(tilemap);
+}
 
 typedef struct{
     float x, y;
@@ -93,7 +224,7 @@ int main() {
     // Initialize Matrices
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(-16.0f / 9.0f, 16.0f / 9.0f, -1.0f, 1.0f, -10.0f, 10.0f);
+    glOrtho(-20.0f, 20.0f, -20.0f, 20.0f, -10.0f, 10.0f);
 
     glMatrixMode(GL_VIEW);
     glLoadIdentity();
@@ -101,16 +232,24 @@ int main() {
     glMatrixMode(GL_MODEL);
     glLoadIdentity();
 
-    Texture* texture = load_texture("container.jpg", GL_TRUE, GL_TRUE);
+    Texture* texture = load_texture("terrain.png", GL_TRUE, GL_TRUE);
     if(!texture)
         goto cleanup;
 
+    TextureAtlas atlas = {.w = 16, .h = 16};
+    Tilemap* tilemap = create_tilemap(atlas, texture, 8, 8);
 
-    Camera2D camera = {
-        .x = 0,
-        .y = 0,
-        .rot = 45.0f
-    };
+    for(int y = 0; y < 8; y++) 
+    for(int x = 0; x < 8; x++) {
+        Tile tile = {
+            .x = x,
+            .y = y,
+            .tex_idx = 0
+        };
+        set_tile(tilemap, tile);
+    }
+
+    build_tilemap(tilemap);
 
     //Main program loop
     while(running){
@@ -127,14 +266,12 @@ int main() {
         glClearColor(0xFF000000);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-        apply_camera(&camera);
+        draw_tilemap(tilemap);
 
         guglSwapBuffers(GL_TRUE, GL_FALSE);
-
-        camera.rot += 1.0f;
-        camera.y = sinf(camera.rot / 180.0f) / 2.0f;
     }
 
+    destroy_tilemap(tilemap);
 cleanup:
 
     // Terminate Graphics
