@@ -200,7 +200,7 @@ void draw_tilemap(Tilemap* tilemap) {
 }
 
 void destroy_tilemap(Tilemap* tilemap) {
-    free(tilemap->mesh);
+    destroy_mesh(tilemap->mesh);
     free(tilemap->tiles);
     free(tilemap);
 }
