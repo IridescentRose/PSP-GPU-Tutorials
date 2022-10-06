@@ -85,16 +85,16 @@ void get_uv_index(TextureAtlas* atlas, float* buf, int idx) {
     // 1 1
     // 1 0 
     buf[0] = x;
-    buf[1] = y;
+    buf[1] = h;
 
     buf[2] = x;
-    buf[3] = h;
+    buf[3] = y;
 
     buf[4] = w;
-    buf[5] = h;
+    buf[5] = y;
 
     buf[6] = w;
-    buf[7] = y;
+    buf[7] = h;
 }
 
 typedef struct {
@@ -147,9 +147,7 @@ Tilemap* create_tilemap(TextureAtlas atlas, Texture* texture, int sizex, int siz
 }
 
 void build_tilemap(Tilemap* tilemap) {
-    int idxc = 0;
-    int size = tilemap->w * tilemap->h;
-    for(int i = 0; i < size; i++){
+    for(int i = 0; i < tilemap->w * tilemap->h; i++){
         float buf[8];
         get_uv_index(&tilemap->atlas, buf, tilemap->tiles[i].tex_idx);
 
@@ -220,6 +218,22 @@ void apply_camera(const Camera2D* cam){
     glLoadIdentity();
 }
 
+void draw_text(Tilemap* t, const char* str){
+    int len = strlen(str);
+
+    for(int i = 0; i < len; i++){
+        char c = str[i];
+
+        Tile tile = {
+            .x = i % t->w,
+            .y = i / t->w,
+            .tex_idx = c
+        };
+
+        t->tiles[i] = tile;
+    }
+}
+
 int main() {
     // Boilerplate
     SetupCallbacks();
@@ -239,11 +253,16 @@ int main() {
     glLoadIdentity();
 
     Texture* texture = load_texture("terrain.png", GL_FALSE, GL_TRUE);
-    if(!texture)
-        goto cleanup;
+    Texture* texture2 = load_texture("default.png", GL_FALSE, GL_TRUE);
 
     TextureAtlas atlas = {.w = 16, .h = 16};
     Tilemap* tilemap = create_tilemap(atlas, texture, 8, 8);
+    Tilemap* tilemap2 = create_tilemap(atlas, texture2, 16, 16);
+    tilemap2->x = 144;
+    tilemap2->y = 16;
+
+    draw_text(tilemap2, "Hello World!");
+    build_tilemap(tilemap2);
 
     for(int y = 0; y < 8; y++) {
         for(int x = 0; x < 8; x++) {
@@ -256,7 +275,7 @@ int main() {
         }
     }
 
-    tilemap->x = 240;
+    tilemap->x = 176;
     tilemap->y = 136;
     build_tilemap(tilemap);
 
@@ -276,12 +295,13 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         draw_tilemap(tilemap);
+        draw_tilemap(tilemap2);
 
         guglSwapBuffers(GL_TRUE, GL_FALSE);
     }
 
     destroy_tilemap(tilemap);
-cleanup:
+    destroy_tilemap(tilemap2);
 
     // Terminate Graphics
     guglTerm();
